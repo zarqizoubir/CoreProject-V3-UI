@@ -4,7 +4,7 @@
     import CoreProject from "$icons/core_project.svelte";
     import Refresh from "$icons/refresh.svelte";
     import { Timer as EasyTimer } from "easytimer.js";
-    import _ from "lodash";
+    import sample from "lodash/sample";
     import { onDestroy, onMount } from "svelte";
     import { blur } from "svelte/transition";
 
@@ -23,7 +23,7 @@
     });
 
     const change_index = () => {
-        const item = _.sample(latest_animes);
+        const item = sample(latest_animes);
 
         image = item?.cover;
         name = item?.name;
@@ -44,6 +44,14 @@
         timer.stop();
     });
 </script>
+
+<svelte:head>
+    <style>
+        #page {
+            overflow-y: hidden;
+        }
+    </style>
+</svelte:head>
 
 <root class="relative inline-grid h-full w-full md:grid-cols-2">
     {#if image && name}
@@ -97,9 +105,3 @@
         <slot />
     </div>
 </root>
-
-<style lang="postcss">
-    :global(#page) {
-        @apply overflow-y-hidden;
-    }
-</style>

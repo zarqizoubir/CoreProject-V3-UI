@@ -1,28 +1,36 @@
 <script lang="ts">
+    import Comment from "$components/shared/comment.svelte";
     import ForumPosts from "$components/shared/forum_posts.svelte";
     import ImageLoader from "$components/shared/image/image_loader.svelte";
-    import Markdown from "$components/shared/markdown.svelte";
     import TextEditor from "$components/shared/text_editor.svelte";
     import { episode_comments } from "$data/mock/episode_comments";
     import { forum_posts } from "$data/mock/forum_posts";
     import { recommendations } from "$data/mock/recommendations";
-    import { FormatDate } from "$functions/format_date";
     import Chevron from "$icons/chevron.svelte";
     import Cross from "$icons/cross.svelte";
     import Download from "$icons/download.svelte";
     import Filter from "$icons/filter.svelte";
-    import Heart from "$icons/heart.svelte";
     import Next from "$icons/next.svelte";
     import PlayCircle from "$icons/play_circle.svelte";
     import Share from "$icons/share.svelte";
     import Warning from "$icons/warning.svelte";
     import { Accordion, AccordionItem } from "@skeletonlabs/skeleton";
     import type { SvelteComponent } from "svelte";
+    import { blur } from "svelte/transition";
     import tippy from "tippy.js";
+
+    /* Comment section logics */
+    let comment_body: string;
+
+    /* Video player options */
+    const toggle_lights = () => {
+        button_state_mapping.lights = !button_state_mapping.lights;
+    };
 
     const button_state_mapping: { [key: string]: boolean } = {
         lights: false
     };
+
     const video_player_mapping: {
         preferences: {
             [key: string]: {
@@ -71,18 +79,27 @@
     export let episode_name = `Monotone/Colorful`;
 </script>
 
-<episode-container class="flex flex-col md:gap-[3.5vw] md:py-[2vw] md:pl-[1vw] md:pr-[3.75vw]">
+{#if button_state_mapping.lights}
+    <lights_overlay
+        transition:blur={{ duration: 300 }}
+        role="presentation"
+        class="absolute inset-0 z-20 bg-black/95"
+        on:mousedown={toggle_lights}
+    />
+{/if}
+
+<episode-container class="mt-16 flex flex-col md:mt-0 md:gap-[3.5vw] md:py-[2vw] md:pl-[1vw] md:pr-[3.75vw]">
     <episode-content class="grid grid-cols-12 md:gap-[5vw]">
         <video-player class="col-span-12 flex flex-col md:col-span-8 md:gap-[0.75vw]">
-            <player class="h-64 w-full md:h-[35vw]">
+            <player class="relative h-64 w-full md:z-30 md:h-[35vw]">
                 <!-- adding a image for now -->
                 <ImageLoader
                     src="/images/DemonSlayer-episode.webp"
                     alt="Episode image"
-                    class="h-full w-full rounded-none object-cover md:rounded-[0.5vw]"
+                    class="h-full w-full rounded-none object-cover md:rounded-[0.5vw] "
                 />
             </player>
-            <video-player-options class="flex flex-col gap-2 p-5 md:flex-row md:items-center md:justify-between md:gap-0 md:p-0">
+            <video-player-options class="flex flex-col gap-2 px-5 md:flex-row md:items-center md:justify-between md:gap-0 md:p-0">
                 <preferences class="flex gap-2 md:items-center md:gap-[1vw]">
                     <sub-dub class="hidden items-center gap-[0.75vw] md:flex">
                         <span class="text-[1vw] font-semibold uppercase">sub/dub:</span>
@@ -97,10 +114,8 @@
                         {@const enabled = button_state_mapping[item[0]]}
 
                         <button
-                            class="btn flex items-center p-0 text-xs leading-none md:text-[0.9vw]"
-                            on:click={() => {
-                                button_state_mapping[item[0]] = !button_state_mapping[item[0]];
-                            }}
+                            class="btn hidden items-center p-0 text-xs leading-none md:flex md:text-[0.9vw]"
+                            on:click={toggle_lights}
                         >
                             <span>{text}:</span>
                             {#if enabled}
@@ -130,7 +145,6 @@
 
                             <a
                                 href={link}
-                                class="unstyled"
                                 class:pointer-events-none={!link}
                                 use:tippy={{
                                     content: `<div class='leading-none w-max whitespace-nowrap rounded-lg bg-surface-400 px-2 py-1 text-[0.65rem] text-surface-50 md:px-[0.75vw] md:py-[0.5vw] md:rounded-[0.35vw] md:text-[1vw]'>${text}</div>`,
@@ -139,7 +153,8 @@
                                     arrow: false,
                                     offset: [0, 17],
                                     appendTo: document.body,
-                                    animation: "shift-away"
+                                    animation: "shift-away",
+                                    theme: "elaine"
                                 }}
                             >
                                 <svelte:component
@@ -152,22 +167,22 @@
                 </div>
             </video-player-options>
         </video-player>
-        <episode-info class="col-span-12 flex flex-col gap-10 p-5 md:col-span-4 md:gap-[1.5vw] md:p-0">
+        <episode-info class="col-span-12 flex flex-col gap-3 p-5 md:col-span-4 md:gap-[1.5vw] md:p-0">
             <header class="flex items-center justify-between">
-                <span class="font-semibold md:text-[1.35vw]">Episodes</span>
+                <span class="text-lg font-semibold md:text-[1.35vw]">Episodes</span>
                 <button class="btn flex items-center gap-2 rounded bg-surface-400 px-3 py-2 text-xs font-semibold leading-none md:gap-[0.5vw] md:rounded-[0.35vw] md:px-[0.75vw] md:py-[0.5vw] md:text-[1vw]">
                     EPS: 1 - 60
                     <Chevron class="w-3 md:w-[1vw]" />
                 </button>
             </header>
 
-            <episodes class="grid grid-cols-6 gap-2 md:gap-[0.75vw]">
+            <episodes class="grid grid-cols-7 gap-2 md:grid-cols-6 md:gap-[0.75vw]">
                 {#each Array(60) as item, index}
                     {@const actual_index = index + 1}
                     {@const button_active = actual_index === episode_number}
                     <a
                         href="./{actual_index}"
-                        class="{button_active ? 'bg-primary-500' : 'bg-surface-400'} unstyled btn rounded py-3 text-sm font-semibold leading-none md:rounded-[0.35vw] md:py-[0.75vw] md:text-[1.2vw]"
+                        class="{button_active ? 'bg-primary-500' : 'bg-surface-400'} btn rounded py-3 text-sm font-semibold leading-none md:rounded-[0.35vw] md:py-[0.75vw] md:text-[1.2vw]"
                     >
                         {actual_index}
                     </a>
@@ -177,15 +192,15 @@
     </episode-content>
 
     <episode-details class="grid grid-cols-12 gap-5 p-5 md:gap-[5vw] md:p-0">
-        <episode-info class="col-span-8 flex flex-col md:gap-[1vw]">
+        <episode-info class="col-span-12 flex flex-col gap-2 md:col-span-8 md:gap-[1vw]">
             <anime-name-options class="flex items-center justify-between">
                 <div>
                     <a
                         href="/mal/1"
-                        class="unstyled flex flex-col leading-none md:gap-[0.25vw] md:text-[1.1vw]"
+                        class="flex flex-col gap-1 text-lg leading-none md:gap-[0.25vw] md:text-[1.1vw]"
                     >
                         <span class="font-semibold uppercase">Demon Slayer S1</span>
-                        <span class="text-surface-50 md:text-[1vw]">Kimetsu no yaiba</span>
+                        <span class="text-base text-surface-50 md:text-[1vw]">Kimetsu no yaiba</span>
                     </a>
                 </div>
                 <options>
@@ -201,7 +216,7 @@
             >
                 <AccordionItem
                     open
-                    regionPanel="text-surface-50 md:text-[1vw] md:leading-[1.35vw]"
+                    regionPanel="text-surface-50 text-sm leading-snug md:text-[1vw] md:leading-[1.35vw]"
                     regionControl="text-base text-warning-400 font-semibold md:text-[1.25vw] md:leading-[1vw] md:pb-[1vw]"
                     regionCaret="md:w-[1vw]"
                 >
@@ -220,11 +235,11 @@
                 <Chevron class="w-3 -rotate-90 md:w-[1vw]" />
             </a>
         </episode-info>
-        <next-episode class="col-span-4">
+        <next-episode class="col-span-4 hidden flex-col md:flex">
             <span class="font-semibold uppercase md:text-[1.1vw]">next episode</span>
             <a
                 href="./{episode_number + 1}"
-                class="unstyled flex md:mt-[0.75vw] md:gap-[1vw]"
+                class="flex md:mt-[0.75vw] md:gap-[1vw]"
             >
                 <episode-cover class="relative">
                     <ImageLoader
@@ -251,7 +266,7 @@
 
     <episode-media class="grid grid-cols-12 p-5 md:gap-[5vw] md:p-0">
         <comments-section class="col-span-12 flex flex-col md:col-span-7 md:gap-[0.75vw]">
-            <span class="flex gap-2 border-b-2 border-surface-50/25 pb-1 text-base font-semibold md:gap-[0.75vw] md:border-none md:pb-0 md:text-[1.25vw] md:leading-[1.5vw]">Comments</span>
+            <span class="flex gap-2 border-b-2 border-surface-50/25 pb-1 text-lg font-semibold md:gap-[0.75vw] md:border-none md:pb-0 md:text-[1.25vw] md:leading-[1.5vw]">Comments</span>
 
             <comments-info class="mt-2 flex items-center justify-between md:hidden">
                 <p class="flex items-center gap-1">
@@ -270,67 +285,59 @@
                 </button>
             </comments-info>
 
-            <form class="mt-3 md:mt-[1vw]">
-                <TextEditor />
+            <comment-form class="flex flex-col md:flex-row md:gap-[1vw]">
+                <a
+                    href="/user/"
+                    class="hidden h-7 w-7 flex-shrink-0 md:mt-[0.5vw] md:flex md:h-[2vw] md:w-[2vw]"
+                >
+                    <ImageLoader
+                        src="/images/DemonSlayer-bg.avif"
+                        alt="Avatar"
+                        class="h-full w-full shrink-0 rounded-full object-cover"
+                    />
+                </a>
+                <form class="mt-3 flex flex-col gap-3 md:mt-[1vw] md:gap-[0.75vw]">
+                    <span class="leading-none text-surface-50 md:text-[1vw]">
+                        Comment as <strong>Tokito</strong>
+                    </span>
+                    <TextEditor textarea_value={comment_body} />
+                    <warning-submit class="flex justify-between gap-5 md:gap-[1vw]">
+                        <warning class="flex items-center gap-3 md:gap-[0.625vw]">
+                            <Warning class="w-10 md:w-[1.2vw]" />
+                            <p class="text-[0.65rem] font-light leading-tight text-surface-300 md:text-[0.75vw] md:leading-[1.125vw]">
+                                Please remember to follow our
+                                <a
+                                    href="/"
+                                    class="text-surface-200 underline"
+                                >
+                                    community guidelines
+                                </a>
+                                while commenting. Also please refrain from posting spoilers.
+                            </p>
+                        </warning>
 
-                <warning-submit class="mt-4 flex justify-between gap-5 md:mt-[0.75vw] md:gap-[1vw]">
-                    <warning class="flex items-center gap-3 md:gap-[0.625vw]">
-                        <Warning class="w-10 md:w-[1.2vw]" />
-                        <p class="unstyled text-[0.65rem] font-light leading-tight text-surface-300 md:text-[0.75vw] md:leading-[1.125vw]">
-                            Please remember to follow our
-                            <a
-                                href="/"
-                                class="unstyled text-surface-200 underline"
-                            >
-                                community guidelines
-                            </a>
-                            while commenting. Also please refrain from posting spoilers.
-                        </p>
-                    </warning>
-
-                    <button class="btn btn-sm h-9 w-40 rounded bg-primary-500 text-sm font-semibold md:h-[2.2vw] md:w-[7vw] md:rounded-[0.375vw] md:text-[0.85vw]">Comment</button>
-                </warning-submit>
-            </form>
+                        <button class="btn btn-sm h-9 w-40 rounded bg-primary-500 text-sm font-semibold md:h-[2.2vw] md:w-[6vw] md:rounded-[0.375vw] md:text-[0.85vw]">Comment</button>
+                    </warning-submit>
+                </form>
+            </comment-form>
 
             <comments class="mt-10 flex flex-col gap-5 md:mt-[2vw] md:gap-[1.5vw]">
-                {#each episode_comments as comment}
-                    <comment class="flex gap-3 md:gap-[1vw]">
-                        <a
-                            href="/user/"
-                            class="h-7 w-7 flex-shrink-0 md:h-[2vw] md:w-[2vw]"
-                        >
-                            <ImageLoader
-                                src={comment.user.profile_pic}
-                                alt="Avatar"
-                                class="h-full w-full shrink-0 rounded-full object-cover"
-                            />
-                        </a>
-                        <comment-details class="flex flex-col items-start gap-1 md:gap-0">
-                            <a
-                                href="/user/"
-                                class="unstyled text-xs leading-none md:text-[1vw]"
-                            >
-                                <username>{comment.user.username}</username>
-                                <comment-time class="text-surface-300 md:text-[0.75vw] md:leading-[1.5vw]">{new FormatDate(comment.date).format_to_time_from_now}</comment-time>
-                            </a>
-
-                            <Markdown
-                                class="text-sm leading-snug text-surface-50 md:text-[1vw] md:leading-[1.5vw]"
-                                markdown={comment.content}
-                            />
-
-                            <button class="btn mt-2 p-0 md:mt-0">
-                                <Heart class="w-3 text-surface-300 md:w-[1vw]" />
-                                <likes class="text-xs md:text-[0.75vw]">{comment.likes}</likes>
-                            </button>
-                        </comment-details>
-                    </comment>
+                {#each episode_comments as comment, index}
+                    <Comment
+                        comment_user_profile_pic={comment.user.profile_pic}
+                        comment_username={comment.user.username}
+                        comment_date={comment.date}
+                        comment_content={comment.content}
+                        comment_likes={comment.likes}
+                        comment_replies={comment.replies}
+                        open={index === 0}
+                    />
                 {/each}
             </comments>
         </comments-section>
         <forum-recommendations class="col-span-12 mt-10 flex flex-col gap-5 md:col-span-5 md:mt-0 md:gap-[2vw]">
             <forum-posts>
-                <span class="flex gap-2 border-b-2 border-surface-50/25 pb-1 text-base font-semibold md:gap-[0.75vw] md:border-none md:pb-0 md:text-[1.25vw] md:leading-[1.5vw]">Forum posts</span>
+                <span class="flex gap-2 border-b-2 border-surface-50/25 pb-1 text-lg font-semibold md:gap-[0.75vw] md:border-none md:pb-0 md:text-[1.25vw] md:leading-[1.5vw]">Forum posts</span>
 
                 <forum-options class="mt-3 flex items-center justify-between md:mt-[1.25vw]">
                     <posts-count class="flex items-center gap-1 md:hidden">
@@ -374,7 +381,7 @@
                 </posts>
 
                 <load-more class="mt-3 flex w-full justify-center md:mt-[1vw]">
-                    <button class="btn btn-sm h-7 gap-2 rounded bg-surface-400 px-2 text-xs font-semibold md:h-[2.4vw] md:rounded-[0.5vw] md:px-[0.9vw] md:text-[0.875vw]">
+                    <button class="btn btn-sm h-7 gap-2 rounded bg-surface-400 px-3 text-xs font-semibold md:h-[2.4vw] md:rounded-[0.5vw] md:px-[0.9vw] md:text-[0.875vw]">
                         Load more
                         <Chevron
                             color="surface-50"
@@ -385,7 +392,7 @@
             </forum-posts>
 
             <recommendations-container>
-                <span class="font-semibold md:text-[1.35vw]">Recommendations</span>
+                <span class="text-lg font-semibold md:text-[1.35vw]">Recommendations</span>
 
                 <container class="mt-3 grid grid-cols-3 gap-4 md:mt-[1.25vw] md:grid-cols-3 md:gap-[1vw]">
                     {#each recommendations as anime}
@@ -415,8 +422,8 @@
                     {/each}
                 </container>
 
-                <load-more class=" mt-3 flex w-full justify-center md:mt-[1vw]">
-                    <button class="btn btn-sm h-7 gap-2 rounded bg-surface-400 px-2 text-xs font-semibold md:h-[2.4vw] md:rounded-[0.5vw] md:px-[0.9vw] md:text-[0.875vw]">
+                <load-more class="mt-3 flex w-full justify-center md:mt-[1vw]">
+                    <button class="btn btn-sm h-7 gap-2 rounded bg-surface-400 px-3 text-xs font-semibold md:h-[2.4vw] md:rounded-[0.5vw] md:px-[0.9vw] md:text-[0.875vw]">
                         Load more
                         <Chevron
                             color="surface-50"

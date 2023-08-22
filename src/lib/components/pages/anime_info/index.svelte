@@ -1,7 +1,6 @@
 <script lang="ts">
     import ForumPosts from "$components/shared/forum_posts.svelte";
     import ImageLoader from "$components/shared/image/image_loader.svelte";
-    import Markdown from "$components/shared/markdown.svelte";
     import ScrollArea from "$components/shared/scroll_area.svelte";
     import TextEditor from "$components/shared/text_editor.svelte";
     import { episode_comments } from "$data/mock/episode_comments";
@@ -16,7 +15,6 @@
     import Edit from "$icons/edit.svelte";
     import ExternalLink from "$icons/external_link.svelte";
     import Filter from "$icons/filter.svelte";
-    import Heart from "$icons/heart.svelte";
     import Listen from "$icons/listen.svelte";
     import PlayCircle from "$icons/play_circle.svelte";
     import Read from "$icons/read.svelte";
@@ -29,8 +27,9 @@
     import Warning from "$icons/warning.svelte";
     import { Ratings } from "@skeletonlabs/skeleton";
     import type { SvelteComponent } from "svelte";
-    import type { SVGAttributes } from "svelte/elements";
+    import Comment from "$components/shared/comment.svelte";
 
+    export let anime_id: number;
     export let anime_name: string;
     export let japanese_name: string;
     export let anime_episodes_count: number;
@@ -128,7 +127,7 @@
                     <anime-banner class="relative col-span-12 h-96 md:h-[18.25vw] md:w-[13vw] md:flex-shrink-0">
                         <radial-gradient
                             class="pointer-events-none absolute inset-0 z-10 h-[150%] w-[125%] -translate-x-8 -translate-y-28 md:hidden"
-                            style="background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 100%);mask-image: linear-gradient(to bottom, rgba(7, 5, 25, 0.95) 80%, rgba(0, 0, 0, 0) 100%);"
+                            style="background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 100%); mask-image: linear-gradient(to bottom, rgba(7, 5, 25, 0.95) 80%, rgba(0, 0, 0, 0) 100%);"
                         />
                         <ImageLoader
                             class="h-full w-full rounded-xl object-cover object-center md:rounded-[1vw]"
@@ -138,9 +137,13 @@
                         <overlay-gradient class="gradient absolute inset-0 bg-gradient-to-t from-surface-900/75 to-surface-900/25 md:hidden" />
                     </anime-banner>
                     <anime-details class="absolute bottom-0 col-span-12 p-5 md:static md:p-0">
-                        <anime-name class="text-2xl font-bold md:text-[2vw] md:leading-[2.7vw]">{anime_name}</anime-name>
+                        <ScrollArea class="max-h-48 md:max-h-[10vw]">
+                            <anime-name class="text-2xl font-bold md:text-[2vw] md:leading-[2.7vw]">
+                                {anime_name}
+                            </anime-name>
+                        </ScrollArea>
 
-                        <anime-japanese-name class="unstyled flex flex-wrap gap-x-2 pt-2 text-xs font-semibold uppercase tracking-wider text-surface-50 md:gap-x-[0.25vw] md:pt-[0.625vw] md:text-[0.75vw] md:leading-[0.9vw]">
+                        <anime-japanese-name class="flex flex-wrap gap-x-2 pt-2 text-xs font-semibold uppercase tracking-wider text-surface-50 md:gap-x-[0.25vw] md:pt-[0.625vw] md:text-[0.75vw] md:leading-[0.9vw]">
                             {japanese_name}
                         </anime-japanese-name>
 
@@ -235,36 +238,42 @@
                     <ScrollArea
                         offsetScrollbar
                         gradientMask
-                        parentClass="mt-3 md:mt-[1.25vw]"
-                        class="h-40 text-justify text-xs md:h-[10.25vw] md:text-[0.75vw] md:leading-[1vw]"
+                        parentClass="max-h-40 mt-3 md:mt-[1.25vw] md:max-h-[10.25vw]"
+                        class="text-justify text-xs md:text-[0.8vw] md:leading-[1vw] md:pb-[1.25vw]"
                     >
                         {anime_synopsis}
                     </ScrollArea>
 
                     <anime-genres class="hidden gap-[0.5vw] text-white md:mt-[1vw] md:flex md:text-[0.75vw] md:leading-[0.9vw]">
-                        <span class="rounded bg-surface-900 px-[0.95vw] md:py-[0.375vw]">Mystery</span>
-                        <span class="rounded bg-surface-900 px-[0.95vw] md:py-[0.375vw]">Romance</span>
-                        <span class="rounded bg-surface-900 px-[0.95vw] md:py-[0.375vw]">Horror</span>
+                        {#each ["Action", "Romance", "Horror"] as genre}
+                            <span class="bg-warning-400 text-black font-semibold md:px-[0.75vw] md:py-[0.4vw] rounded-[0.25vw]">
+                                {genre}
+                            </span>
+                        {/each}
                     </anime-genres>
 
-                    <anime-scores class="hidden w-max gap-[0.75vw] rounded-[0.25vw] bg-surface-50/10 backdrop-blur-lg md:mt-[0.5vw] md:flex md:px-[0.75vw] md:py-[0.375vw] md:text-[0.65vw] md:leading-[0.75vw]">
+                    <anime-scores class="hidden w-max gap-[0.75vw] rounded-[0.25vw] bg-surface-50/10 backdrop-blur-lg md:mt-[0.5vw] md:flex md:px-[0.75vw] md:py-[0.5vw] md:text-[0.75vw] md:leading-[0.75vw]">
                         <score class="flex gap-[0.25vw]">
                             <span>Score:</span>
-                            <span class="text-warning-400">79</span>
+                            <span class="font-semibold text-warning-400">79</span>
                         </score>
                         <status class="flex gap-[0.25vw]">
                             <span>Status:</span>
-                            <span class="text-warning-400">Watching</span>
-                            <Chevron class="w-[0.625vw] text-warning-400" />
+                            <button class="btn p-0 leading-none md:text-[0.75vw]">
+                                <span class="font-semibold text-warning-400">Watching</span>
+                                <Chevron class="w-[0.625vw] text-warning-400" />
+                            </button>
                         </status>
                         <episodes-count class="flex gap-[0.25vw]">
                             <span>Episode:</span>
-                            <span class="text-warning-400">0/{anime_episodes_count}</span>
+                            <span class="font-semibold text-warning-400">0/{anime_episodes_count}</span>
                         </episodes-count>
                         <your-scrore class="flex gap-[0.25vw]">
                             <span>Your Score:</span>
-                            <span class="text-warning-400">Not Rated</span>
-                            <Chevron class="w-[0.625vw] text-warning-400" />
+                            <button class="btn p-0 leading-none md:text-[0.75vw]">
+                                <span class="font-semibold text-warning-400">Not Rated</span>
+                                <Chevron class="w-[0.625vw] text-warning-400" />
+                            </button>
                         </your-scrore>
                     </anime-scores>
                 </anime-synopsis>
@@ -358,8 +367,8 @@
                         {@const duration = episode.duration}
 
                         <a
-                            href="./watch/{episode_number}"
-                            class="unstyled relative col-span-12 grid grid-cols-12 gap-4 md:col-span-4"
+                            href="./{anime_id}/episode/{episode_number}"
+                            class="relative col-span-12 grid grid-cols-12 gap-4 md:col-span-4"
                         >
                             <card-banner-info class="relative col-span-5 h-full w-full md:col-span-12 md:h-[19vw]">
                                 <card-banner class="block h-24 md:h-[12vw] md:w-full">
@@ -374,23 +383,23 @@
                                     <p class="rounded bg-surface-900/75 p-1 text-xs font-bold tracking-wider text-surface-50 md:h-max md:rounded-[0.4vw] md:bg-surface-900/75 md:px-[0.75vw] md:py-[0.75vw] md:text-[0.8vw] md:leading-none">
                                         EP {String(episode_number).padStart(2, "0")}
                                     </p>
-                                    <p class="unstyled rounded bg-surface-900/75 p-1 py-0 text-[0.7rem] font-semibold text-surface-50 md:h-max md:rounded-[0.4vw] md:bg-surface-900/75 md:px-[0.5vw] md:py-[0.55vw] md:text-[0.8vw] md:leading-none">
+                                    <p class="rounded bg-surface-900/75 p-1 py-0 text-[0.7rem] font-semibold text-surface-50 md:h-max md:rounded-[0.4vw] md:bg-surface-900/75 md:px-[0.5vw] md:py-[0.55vw] md:text-[0.8vw] md:leading-none">
                                         {new FormatTime(duration).format_seconds_to_time_stamp_duration}
                                     </p>
                                 </card-info>
                             </card-banner-info>
 
-                            <episode-info-card class="col-span-7 flex h-full w-full flex-col items-start justify-between md:absolute md:bottom-0 md:col-span-12 md:h-auto md:gap-[0.75vw] md:rounded-b-[0.625vw] md:bg-surface-900 md:p-[1vw]">
+                            <episode-info-card class="col-span-7 flex h-full w-full flex-col items-start justify-between md:absolute md:bottom-0 md:col-span-12 md:h-auto md:rounded-b-[0.625vw] md:bg-surface-900 md:p-[1vw]">
                                 <episode-titles class="relative flex w-full flex-col items-start gap-1 md:gap-[0.25vw]">
-                                    <episode-name class="md:hover:overflow-scroll-y max-h-9 w-full overflow-hidden text-[0.8rem] font-light leading-snug text-white duration-500 ease-in-out md:max-h-[1.25vw] md:bg-surface-900 md:text-[0.9vw] md:leading-[1.25vw] md:text-surface-50/90 md:hover:max-h-[18vw] md:hover:text-surface-50">
+                                    <episode-name class="md:hover:overflow-scroll-y line-clamp-2 max-h-9 w-full overflow-hidden text-[0.8rem] font-light leading-snug text-white duration-500 ease-in-out scrollbar-none md:line-clamp-none md:max-h-[1.25vw] md:bg-surface-900 md:text-[0.9vw] md:leading-[1.25vw] md:text-surface-50/90 md:hover:max-h-[18vw] md:hover:text-surface-50">
                                         {title}
                                     </episode-name>
 
-                                    <episode-japanese-name class="md:hover:overflow-scroll-y max-h-4 w-full overflow-hidden text-[0.8rem] font-light leading-snug text-white duration-500 ease-in-out md:max-h-[1.3vw] md:bg-surface-900 md:text-[0.9vw] md:leading-[1.25vw] md:text-surface-50/90 md:hover:max-h-[18vw] md:hover:text-surface-50">
+                                    <episode-japanese-name class="md:hover:overflow-scroll-y line-clamp-2 max-h-4 w-full overflow-hidden text-[0.8rem] font-light leading-snug text-white duration-500 ease-in-out scrollbar-none md:line-clamp-none md:max-h-[1.3vw] md:bg-surface-900 md:text-[0.9vw] md:leading-[1.25vw] md:text-surface-50/90 md:hover:max-h-[18vw] md:hover:text-surface-50">
                                         {japanese_name}
                                     </episode-japanese-name>
                                 </episode-titles>
-                                <episode-available-formats class="relative flex w-full items-center gap-2 md:mt-[0.25vw] md:gap-[0.65vw]">
+                                <episode-available-formats class="relative flex w-full items-center gap-2 bg-surface-900 md:gap-[0.65vw] md:pt-[0.75vw]">
                                     <formats class="flex gap-2 leading-none md:gap-[0.65vw]">
                                         {#each episode.formats as format}
                                             <span class="rounded text-[0.6rem] font-semibold uppercase tracking-wider text-surface-50 md:bg-surface-400/50 md:p-[0.45vw] md:text-[0.8vw]">{format}</span>
@@ -401,15 +410,12 @@
                                         {#each episode.resolutions as episode_resolution}
                                             {@const resolution = (() => {
                                                 switch (episode_resolution) {
-                                                    case "720p": {
-                                                        return "hd";
-                                                    }
-                                                    case "1080p": {
+                                                    case "1080p":
                                                         return "fhd";
-                                                    }
-                                                    default: {
+                                                    case "720p":
+                                                        return "hd";
+                                                    default:
                                                         return "sd";
-                                                    }
                                                 }
                                             })()}
 
@@ -456,11 +462,11 @@
                             <comment-submit class="mt-4 flex justify-between gap-5 md:mt-[0.75vw] md:gap-[1vw]">
                                 <comment-alert class="flex items-center gap-3 md:gap-[0.625vw]">
                                     <Warning class="w-10 md:w-[1.2vw]" />
-                                    <p class="unstyled text-[0.65rem] font-light leading-tight text-surface-300 md:text-[0.75vw] md:leading-[1.125vw]">
+                                    <p class="text-[0.65rem] font-light leading-tight text-surface-300 md:text-[0.75vw] md:leading-[1.125vw]">
                                         Please remember to follow our
                                         <a
                                             href="/"
-                                            class="unstyled text-surface-200 underline"
+                                            class="text-surface-200 underline"
                                         >
                                             community guidelines
                                         </a>
@@ -473,38 +479,16 @@
                         </form>
 
                         <comments class="mt-10 flex flex-col gap-5 md:mt-[2vw] md:gap-[1.5vw]">
-                            {#each episode_comments as comment}
-                                <comment class="flex gap-3 md:gap-[1vw]">
-                                    <a
-                                        href="/user/"
-                                        class="h-7 w-7 flex-shrink-0 md:h-[2vw] md:w-[2vw]"
-                                    >
-                                        <ImageLoader
-                                            src={comment.user.profile_pic}
-                                            alt="Avatar"
-                                            class="h-full w-full shrink-0 rounded-full object-cover"
-                                        />
-                                    </a>
-                                    <comment-details class="flex flex-col items-start gap-1 md:gap-0">
-                                        <a
-                                            href="/user/"
-                                            class="unstyled text-xs leading-none md:text-[1vw]"
-                                        >
-                                            <username>{comment.user.username}</username>
-                                            <comment-time class="text-surface-300 md:text-[0.75vw] md:leading-[1.5vw]">{new FormatDate(comment.date).format_to_time_from_now}</comment-time>
-                                        </a>
-
-                                        <Markdown
-                                            class="text-sm leading-snug text-surface-50 md:text-[1vw] md:leading-[1.5vw]"
-                                            markdown={comment.content}
-                                        />
-
-                                        <button class="btn mt-2 p-0 md:mt-0">
-                                            <Heart class="w-3 text-surface-300 md:w-[1vw]" />
-                                            <likes class="text-xs md:text-[0.75vw]">{comment.likes}</likes>
-                                        </button>
-                                    </comment-details>
-                                </comment>
+                            {#each episode_comments as comment, index}
+                                <Comment
+                                    comment_user_profile_pic={comment.user.profile_pic}
+                                    comment_username={comment.user.username}
+                                    comment_date={comment.date}
+                                    comment_content={comment.content}
+                                    comment_likes={comment.likes}
+                                    comment_replies={comment.replies}
+                                    show_replies={index === 0}
+                                />
                             {/each}
                         </comments>
                     </comment-box>
@@ -575,13 +559,13 @@
                     <span class="divider-vertical m-0 !border-surface-50/50 font-semibold text-surface-50 md:pl-1 md:text-[0.75vw] md:leading-[0.8vw]">2.8k ratings</span>
                 </raing>
 
-                <raking class="md:mt-[1.125vw]">
+                <raking class="block md:mt-[1vw]">
                     <div class="flex items-center md:gap-[0.25vw]">
-                        <span class="md:text-[1vw] md:leading-[1.5vw]">#80</span>
+                        <span class="font-semibold md:text-[1vw] md:leading-[1.5vw]">#80</span>
                         <span class="text-surface-50 md:text-[0.75vw] md:leading-[0.75vw]">Trending of all time</span>
                     </div>
                     <div class="flex items-center md:gap-[0.25vw]">
-                        <span class="md:text-[1vw] md:leading-[1.5vw]">#108</span>
+                        <span class="font-semibold md:text-[1vw] md:leading-[1.5vw]">#108</span>
                         <span class="text-surface-50 md:text-[0.75vw] md:leading-[0.75vw]">Most popular anime</span>
                     </div>
                 </raking>
@@ -692,14 +676,14 @@
                     </div>
 
                     <casts class="mt-[1vw] block">
-                        <casts-cards class="relative grid h-[7.5vw] w-[12.5vw] grid-cols-2 gap-[2px] overflow-hidden rounded-[0.75vw]">
+                        <casts-cards class="relative grid h-[9vw] w-full grid-cols-2 gap-[2px] overflow-hidden rounded-[0.75vw]">
                             <cast-image class="relative col-span-1 w-full bg-cover">
                                 <ImageLoader
                                     src="https://s4.anilist.co/file/anilistcdn/character/large/b55131-ypodHQCyHbzD.png"
                                     class="absolute h-full w-full object-cover object-center"
                                 />
 
-                                <span class="absolute bottom-[0.3vw] z-10 w-full text-center text-[0.9vw] font-bold leading-[1.25vw]">Houtarou Oreki</span>
+                                <span class="absolute bottom-[0.3vw] z-10 w-full text-center text-[0.9vw] font-bold leading-[1vw] md:px-[1vw]">Houtarou Oreki</span>
                             </cast-image>
                             <cast-details class="relative col-span-1 w-full bg-cover">
                                 <ImageLoader
@@ -707,7 +691,7 @@
                                     class="absolute h-full w-full object-cover object-center"
                                 />
 
-                                <span class="absolute bottom-[0.3vw] z-10 w-full text-center text-[0.9vw] font-bold leading-[1.25vw]">Yuuichi Nakamura</span>
+                                <span class="absolute bottom-[0.3vw] z-10 w-full text-center text-[0.9vw] font-bold leading-[1vw] md:px-[1vw]">Yuuichi Nakamura</span>
                             </cast-details>
                             <gradient-overlay class="gradient absolute inset-0 rounded-b-[0.45vw] bg-gradient-to-t from-surface-900/75 to-surface-900/25" />
                         </casts-cards>
@@ -786,18 +770,10 @@
 <style lang="scss">
     episode-japanese-name,
     episode-name {
-        scrollbar-width: none;
-
         &:not(:hover) {
             /* if we need to change the width, we should change the 90% to higher  */
             mask-image: linear-gradient(90deg, rgba(7, 5, 25, 0.95) 90%, rgba(0, 0, 0, 0) 100%);
             mask-position: right;
-        }
-
-        @media (max-width: 767px) {
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
         }
     }
 </style>

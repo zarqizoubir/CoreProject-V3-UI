@@ -1,6 +1,7 @@
 <script lang="ts">
     import ImageLoader from "$components/shared/image/image_loader.svelte";
     import { emojis } from "$data/emojis";
+    import { is_valid_url } from "$functions/is_valid_url";
     import Bold from "$icons/bold.svelte";
     import Code from "$icons/code.svelte";
     import Hyperlink from "$icons/hyperlink.svelte";
@@ -9,22 +10,25 @@
     import Underline from "$icons/underline.svelte";
     import Markdown from "./markdown.svelte";
     import { offset } from "caret-pos";
-    import { tick } from "svelte";
+    import { encode } from "html-entities";
     import type { SvelteComponent } from "svelte";
     import tippy from "tippy.js";
-    import xss from "xss";
 
-    let caret_offset_top: string | null = null;
-    let caret_offset_left: string | null = null;
+    export let textarea_value = "";
+
+    let caret_offset_top: string | null = null,
+        caret_offset_left: string | null = null;
 
     // Bindings
     let textarea_element: HTMLTextAreaElement;
-    let textarea_value = "";
 
-    let emoji_matches: [{ emoji: string; keyword: string }?];
-    let show_emoji_picker = false;
-    let active_emoji_index: number;
-    const SHOWN_EMOJI_LIMIT = 5;
+    let emoji_matches: Array<{
+            emoji: string;
+            keyword: string;
+        }>,
+        show_emoji_picker = false,
+        active_emoji_index: number,
+        SHOWN_EMOJI_LIMIT = 5;
 
     // Icon Mapping
     const icon_and_function_mapping: {
@@ -86,24 +90,8 @@
             description: "Add hyperlinked text, <Ctrl + k>"
         }
     };
-    // Functions
-    function is_valid_url(url_string: string) {
-        /**
-         * Credit : https://stackoverflow.com/a/43467144
-         */
-        let url: URL;
-
-        try {
-            url = new URL(url_string);
-        } catch (_) {
-            return false;
-        }
-
-        return url.protocol === "http:" || url.protocol === "https:";
-    }
 
     // Hanlders
-
     async function handle_blur() {
         emoji_matches = [];
         show_emoji_picker = false;
@@ -127,7 +115,14 @@
 
         // check if last_typed_word starts with ":" that may or may not have subsequent word characters
         const emoji_code = last_typed_word?.match(/^:(\S*)$/);
-        if (emoji_code) {
+        if (!emoji_code) {
+            emoji_matches = [];
+            show_emoji_picker = false;
+
+            // Caret
+            caret_offset_top = null;
+            caret_offset_left = null;
+        } else {
             // Set first item active
             active_emoji_index = 0;
 
@@ -146,7 +141,7 @@
             }
 
             // Popover settings
-            if (caret_offset_left === null || caret_offset_top == null) {
+            if (caret_offset_left === null && caret_offset_top == null) {
                 const textarea_position = element.getBoundingClientRect();
 
                 // CSS
@@ -158,13 +153,6 @@
                 caret_offset_top = `calc(${caret_position.top - textarea_position.top + caret_position.height}px + (2 * ${line_height}))`;
                 caret_offset_left = `calc(${caret_position.left - textarea_position.left}px)`;
             }
-        } else {
-            emoji_matches = [];
-            show_emoji_picker = false;
-
-            // Caret
-            caret_offset_top = null;
-            caret_offset_left = null;
         }
     }
 
@@ -174,12 +162,12 @@
             switch (event.key.toLowerCase()) {
                 case "arrowup": {
                     event.preventDefault();
-                    active_emoji_index = (active_emoji_index - 1 + emoji_matches.length) % emoji_matches.length;
+                    active_emoji_index = (active_emoji_index - 1 + SHOWN_EMOJI_LIMIT) % SHOWN_EMOJI_LIMIT;
                     break;
                 }
                 case "arrowdown": {
                     event.preventDefault();
-                    active_emoji_index = (active_emoji_index + 1) % emoji_matches.length;
+                    active_emoji_index = (active_emoji_index + 1) % SHOWN_EMOJI_LIMIT;
                     break;
                 }
                 case "enter": {
@@ -255,9 +243,9 @@
         await operate_on_selected_text({ element: element, starting_operator: "~~", ending_operator: "~~" });
     }
     async function hyperlink_text(element: HTMLTextAreaElement) {
-        const selection_start = element.selectionStart;
-        const selection_end = element.selectionEnd;
-        const selection_text = element.value.substring(selection_start, selection_end);
+        const selection_start = element.selectionStart,
+            selection_end = element.selectionEnd,
+            selection_text = element.value.substring(selection_start, selection_end);
 
         // Handle use cases
         if (element.value.substring(selection_start - 3, selection_start) == "[](" && element.value.substring(selection_end, selection_end + 1) == ")") {
@@ -275,14 +263,14 @@
     }
     async function paste_text(event: ClipboardEvent & { currentTarget: HTMLTextAreaElement }) {
         event.preventDefault();
-
         const element = event.currentTarget;
-        const selection_start = element.selectionStart;
-        const selection_end = element.selectionEnd;
-        const selection_text = element.value.substring(selection_start, selection_end);
 
-        const clipboard_data = event.clipboardData?.getData("text") ?? "";
-        const clipboard_data_contains_url = is_valid_url(clipboard_data);
+        const selection_start = element.selectionStart,
+            selection_end = element.selectionEnd,
+            selection_text = element.value.substring(selection_start, selection_end);
+
+        const clipboard_data = event.clipboardData?.getData("text") ?? "",
+            clipboard_data_contains_url = is_valid_url(clipboard_data);
 
         if (selection_text && clipboard_data_contains_url) {
             const replacement_text = `[${selection_text}](${clipboard_data})`;
@@ -295,7 +283,7 @@
     }
 
     // Functions
-    async function insert_text({ target, text }: { target: HTMLTextAreaElement; text: string }) {
+    async function insert_text({ target, text }: { target: HTMLTextAreaElement; text: string }): Promise<void> {
         /**
          * Thanks stackoverflow guy and mozilla dev ( Michal Čaplygin |myf| )
          * Stackoverflow : https://stackoverflow.com/a/56509046
@@ -305,12 +293,12 @@
         document.execCommand("insertText", false, text);
     }
 
-    async function operate_on_selected_text({ element, starting_operator, ending_operator }: { element: HTMLTextAreaElement; starting_operator: string; ending_operator: string }) {
+    async function operate_on_selected_text({ element, starting_operator, ending_operator }: { element: HTMLTextAreaElement; starting_operator: string; ending_operator: string }): Promise<void> {
         element.focus();
 
-        const selection_start = element.selectionStart;
-        const selection_end = element.selectionEnd;
-        const selection_text = element.value.substring(selection_start, selection_end);
+        const selection_start = element.selectionStart,
+            selection_end = element.selectionEnd,
+            selection_text = element.value.substring(selection_start, selection_end);
 
         const regex_pattern_for_operator = new RegExp("^" + starting_operator.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&") + "|" + ending_operator.replace(/[|\\{}()[\]^$+*?.]/g, "\\$&") + "$", "g");
 
@@ -355,26 +343,25 @@
         }
     }
 
-    async function select_emoji({ emoji_index, element }: { emoji_index: number; element: HTMLElement }) {
-        const emoji_keyword = emoji_matches[emoji_index]?.keyword;
-        const emoji_code = `:${emoji_keyword}:`;
-
+    async function select_emoji({ emoji_index, element }: { emoji_index: number; element: HTMLElement }): Promise<void> {
         const textarea_element = element as HTMLTextAreaElement;
-        const selection_start = textarea_element.selectionStart;
-        const selection_end = textarea_element.selectionEnd;
 
-        const text_before_selection = textarea_value.substring(0, selection_start);
-        const text_after_selection = textarea_value.substring(selection_end);
+        const emoji_keyword = emoji_matches[emoji_index]?.keyword,
+            emoji_code = `:${emoji_keyword}:`;
+
+        const selection_start = textarea_element.selectionStart,
+            selection_end = textarea_element.selectionEnd;
+
+        const text_before_selection = textarea_value.substring(0, selection_start),
+            text_after_selection = textarea_value.substring(selection_end);
 
         // replace last word before text selection with emoji code
         const updated_text_before_selection = text_before_selection.replace(/\S+$/, emoji_code);
-        textarea_value = `${updated_text_before_selection} ${text_after_selection}`;
+        await insert_text({ target: textarea_element, text: `${updated_text_before_selection} ${text_after_selection}` });
 
         // set caret at the end of inserted emoji_code
-        tick().then(() => {
-            const caret_position = updated_text_before_selection.length + 1;
-            textarea_element.setSelectionRange(caret_position, caret_position);
-        });
+        const caret_position = updated_text_before_selection.length + 1;
+        textarea_element.setSelectionRange(caret_position, caret_position);
 
         // close emoji picker
         show_emoji_picker = false;
@@ -387,7 +374,9 @@
 
     let tab_type: "edit" | "preview" = "edit";
 
-    const handle_edit_preview_button_click = (item: string) => (tab_type = item as typeof tab_type);
+    async function handle_edit_preview_button_click(item: string): Promise<void> {
+        tab_type = item as typeof tab_type;
+    }
 </script>
 
 <div class="relative rounded-lg ring-2 ring-surface-300/25 transition duration-300 focus-within:ring-primary-500 md:rounded-[0.75vw] md:ring-[0.15vw]">
@@ -397,9 +386,7 @@
                 {@const active = tab_type.toLowerCase() == item}
                 <button
                     type="button"
-                    on:click={() => {
-                        handle_edit_preview_button_click(item);
-                    }}
+                    on:click={() => handle_edit_preview_button_click(item)}
                     class="{active ? 'bg-surface-900 text-surface-50' : 'text-surface-300'} h-8 px-5 text-xs capitalize leading-[1.5vw] transition-colors duration-100 md:h-[2.5vw] md:px-[1.5vw] md:text-[1vw]"
                 >
                     {item}
@@ -420,12 +407,13 @@
                     type="button"
                     aria-label={item_label}
                     use:tippy={{
-                        content: `<div class='leading-2 w-max whitespace-nowrap rounded-lg bg-surface-400 px-2 py-1 text-[0.65rem] text-surface-50 md:px-[0.75vw] md:py-[0.3vw] md:text-[1vw]'>${xss(description)}</div>`,
+                        content: `<div class='leading-2 w-max whitespace-nowrap rounded-lg bg-surface-400 px-2 py-1 text-[0.65rem] text-surface-50 md:px-[0.75vw] md:py-[0.3vw] md:text-[1vw]'>${encode(description)}</div>`,
                         allowHTML: true,
                         arrow: false,
                         offset: [0, 17],
                         appendTo: document.body,
-                        animation: "shift-away"
+                        animation: "shift-away",
+                        theme: "elaine"
                     }}
                     on:click={() => button_function(textarea_element)}
                 >
@@ -434,31 +422,38 @@
             {/each}
         </div>
     </textarea-navbar>
-    {#if tab_type === "edit"}
-        <textarea
-            on:paste={(event) => paste_text(event)}
-            on:input={handle_input}
-            on:keydown={handle_keydown}
-            on:blur={handle_blur}
-            bind:value={textarea_value}
-            bind:this={textarea_element}
-            spellcheck="true"
-            class="h-28 w-full resize-none border-none bg-surface-900 p-3 text-sm leading-tight text-surface-50 outline-none duration-300 ease-in-out placeholder:text-surface-200 focus:ring-0 md:h-[8vw] md:p-[1vw] md:text-[1vw] md:leading-[1.5vw]"
-            placeholder="Leave a comment"
-        />
-    {:else if tab_type === "preview"}
-        <div class="h-[7.22rem] p-3 md:h-full md:min-h-[8.25vw] md:p-[1vw]">
-            <Markdown
-                markdown={textarea_value}
-                class="w-full border-none bg-surface-900 text-sm leading-tight text-surface-50 outline-none md:text-[1vw] md:leading-[1.5vw]"
+    <textarea-body class="block h-28 overflow-y-scroll md:h-[8vw]">
+        {#if tab_type === "edit"}
+            <textarea
+                on:paste={(event) => paste_text(event)}
+                on:input={handle_input}
+                on:keydown={handle_keydown}
+                on:blur={handle_blur}
+                bind:value={textarea_value}
+                bind:this={textarea_element}
+                spellcheck="true"
+                class="h-full w-full resize-none border-none bg-surface-900 p-3 text-sm leading-tight text-surface-50 outline-none duration-300 ease-in-out placeholder:text-surface-200 focus:ring-0 md:p-[1vw] md:text-[1vw] md:leading-[1.5vw]"
+                placeholder="Leave a comment"
             />
-        </div>
-    {/if}
+        {:else if tab_type === "preview"}
+            <div class="p-3 md:p-[1vw]">
+                {#if textarea_value}
+                    <Markdown
+                        markdown={textarea_value}
+                        class="h-full w-full border-none bg-surface-900 text-sm leading-tight text-surface-50 outline-none md:text-[1vw] md:leading-[1.5vw]"
+                    />
+                {:else}
+                    <span class="text-sm leading-tight text-surface-50 md:text-[1vw] md:leading-[1.5vw]">Nothing to preview</span>
+                {/if}
+            </div>
+        {/if}
+    </textarea-body>
     <textarea-footer class="flex justify-between bg-surface-400/50 px-4 py-2 text-[0.65rem] font-thin leading-[1.5vw] text-surface-200 md:px-[1vw] md:py-[0.1vw] md:text-[0.75vw]">
         <div />
         <div>
-            Learn more about <a
-                class="unstyled underline"
+            Learn more about
+            <a
+                class="underline"
                 href="/"
             >
                 core editor

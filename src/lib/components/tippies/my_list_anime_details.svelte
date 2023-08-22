@@ -1,71 +1,77 @@
 <script lang="ts">
+    import ScrollArea from "$components/shared/scroll_area.svelte";
     import { FormatDate } from "$functions/format_date";
+    import { round_to_nearest_zero_point_five } from "$functions/math";
     import Circle from "$icons/circle.svelte";
+    import Info from "$icons/info.svelte";
+    import PlayCircle from "$icons/play_circle.svelte";
+    import Star from "$icons/star.svelte";
+    import { Ratings } from "@skeletonlabs/skeleton";
 
-    export let anime_cover: string;
+    export let anime_id: number;
     export let anime_name: string;
-    export let anime_type: string;
-    export let anime_release_date: string;
     export let anime_episodes_count: number;
+    export let anime_current_episode: number;
+    export let anime_type: string;
     export let anime_genres: string[];
     export let anime_studios: string[];
     export let anime_synopsis: string;
-    export let anime_current_episode: number;
+    export let anime_release_date: string;
 </script>
 
-<div class="z-20 h-[18vw] w-[20vw] rounded-[1vw]">
-    <div
-        class="relative flex h-full w-full items-center overflow-hidden rounded-[1vw] bg-cover bg-center"
-        style="background-image: url({anime_cover});"
-    >
-        <gradient-overlay class="gradient absolute h-full w-full bg-gradient-to-t from-surface-900 to-surface-900/25 transition duration-300 group-hover:to-surface-900/50" />
-        <gradient-overlay class="gradient absolute h-full w-full bg-gradient-to-r from-surface-900/75 to-surface-900/25 transition duration-300 group-hover:to-surface-900/50" />
+<popup-container class="hidden flex-col overflow-hidden bg-surface-400 leading-none md:flex md:w-[20vw] md:rounded-[0.75vw]">
+    <div class="flex flex-col md:gap-[0.35vw] md:p-[1vw]">
+        <anime-name class="font-semibold md:text-[1vw] md:leading-[1.25vw]">{anime_name}</anime-name>
 
-        <div class="absolute flex h-full flex-col justify-end rounded-[1vw] border-[0.25vw] border-b-0 border-surface-50/50 px-[1.5625vw] pb-[3vw]">
-            <span class="line-clamp-1 text-[1vw] font-semibold leading-[1.25vw] text-white">
-                {anime_name}
-            </span>
-            <span class="line-clamp-1 text-[0.75vw] font-semibold uppercase leading-[1.25vw] tracking-wider text-surface-50">
-                {anime_name}
-            </span>
-
-            <div class="mt-[0.25vw] flex items-center gap-[0.5vw] text-[0.75vw]">
-                <span>{anime_type}</span>
-                <Circle class="w-[0.2vw] text-surface-50" />
-                <span class="capitalize">
-                    {new FormatDate(anime_release_date).format_to_season}
-                </span>
-                <Circle class="w-[0.2vw] text-surface-50" />
-                <span>{anime_episodes_count} episodes</span>
-            </div>
-
-            <div class="mt-[0.5vw] flex gap-[0.5vw]">
-                {#each anime_genres as genre}
-                    <span class="rounded-[0.25vw] bg-surface-900 px-[0.625vw] py-[0.35vw] text-[0.75vw] leading-[0.75vw]">
-                        {genre}
-                    </span>
-                {/each}
-            </div>
-
-            <div class="mt-[0.5vw] flex items-center gap-[0.5vw] text-[0.75vw]">
-                <span>
-                    69% <span class="text-surface-200">[7852 ratings]</span>
-                </span>
-                <Circle class="w-[0.2vw] text-surface-50" />
-                <span>{anime_studios[0]}</span>
-            </div>
-
-            <span class="mt-[0.75vw] line-clamp-3 text-[0.75vw] font-medium leading-[1vw] text-surface-50">
-                {anime_synopsis}
-            </span>
+        <div class="flex items-center text-surface-50 md:gap-[0.35vw] md:text-[0.8vw]">
+            <rating class="flex items-center md:gap-[0.5vw]">
+                <Star
+                    color="yellow"
+                    variant="full"
+                    fill_color="yellow"
+                    class="h-[1.1vw] w-[1.1vw]"
+                />
+                <span class="leading-none text-surface-50 md:text-[0.8vw]">4.5 rating</span>
+            </rating>
+            <Circle class="opacity-50 md:w-[0.25vw]" />
+            <anime-type>{anime_type}</anime-type>
+            <Circle class="opacity-50 md:w-[0.25vw]" />
+            <episodes-count>{anime_episodes_count} episdoes</episodes-count>
         </div>
+        <studio class="text-surface-50 md:text-[0.75vw]">
+            {#each anime_studios as studio}
+                <span>{studio}</span>
+            {/each}
+        </studio>
+        <genres class="flex items-center md:my-[0.35vw] md:gap-[0.5vw]">
+            {#each anime_genres as genre}
+                <genre class="bg-surface-50 font-semibold leading-none text-black md:rounded-[0.35vw] md:px-[0.6vw] md:py-[0.3vw] md:text-[0.8vw]">
+                    {genre}
+                </genre>
+            {/each}
+        </genres>
+        <ScrollArea
+            parentClass="md:max-h-[4vw]"
+            offsetScrollbar
+            class="text-surface-50 md:text-[0.8vw] md:leading-[1vw]"
+        >
+            {anime_synopsis}
+        </ScrollArea>
 
-        <div class="absolute bottom-0 flex h-[1.75vw] w-full items-center justify-center gap-[0.5vw] bg-primary-500 text-[0.9vw] font-semibold">
-            <span class="font-medium">Watching</span>
-            <Circle class="w-[0.2vw]" />
-            <span>
-                {anime_current_episode}/{anime_episodes_count}
-            </span>
-        </div>
+        <options class="flex items-center md:mt-[0.25vw] md:gap-[0.5vw]">
+            <a
+                href="/mal/{anime_id}/episode/{anime_current_episode}"
+                class="btn h-[2.3vw] flex-1 bg-primary-500 leading-none md:rounded-[0.5vw]"
+            >
+                <PlayCircle class="md:w-[1vw]" />
+                <span class="font-semibold md:text-[0.9vw]">Continue Ep {anime_current_episode}</span>
+            </a>
+            <a
+                href="/mal/{anime_id}"
+                class="btn aspect-square h-[2.3vw] bg-primary-500/25 p-0 leading-none md:rounded-[0.5vw]"
+            >
+                <Info class="md:w-[1.2vw]" />
+            </a>
+        </options>
     </div>
-</div>
+</popup-container>
